@@ -1,6 +1,8 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, env, fs::File, str::FromStr};
 
-use actix_web::web::Bytes;
+use actix_web::{error::ResponseError, http::{header::ContentType, StatusCode}, web::Bytes, HttpResponse};
+use derive_more::derive::{Display, Error};
+use log::info;
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     multipart::{Form as MpForm, Part},
@@ -15,7 +17,33 @@ pub trait Site {
         file: Bytes,
         file_name: F,
         mime: M,
-    ) -> Result<String, reqwest::Error>;
+    ) -> anyhow::Result<String>;
+}
+
+#[derive(Debug, Display, Error)]
+#[display("{inner}")]
+pub struct AppError {
+    inner: anyhow::Error,
+}
+
+impl ResponseError for AppError {
+    fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
+        HttpResponse::build(self.status_code())
+            .insert_header(ContentType::plaintext())
+            .body(self.to_string())
+    }
+
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        match self.inner {
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
+impl From<anyhow::Error> for AppError {
+    fn from(value: anyhow::Error) -> Self {
+        Self { inner: value }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,6 +53,19 @@ pub struct Config {
     #[serde(rename = "host")]
     pub hosts: HashMap<String, Host>,
     pub users: HashMap<String, String>,
+}
+
+impl Config {
+    pub fn from_env() -> std::io::Result<Self> {
+        if let Some(conf_path) = env::var_os("ADAPTER_CONF") {
+            info!("loading configuration from {:?}", conf_path);
+            let input = File::open(conf_path)?;
+            // TODO: remove unwrap
+            Ok(hcl::from_reader(input).unwrap())
+        } else {
+            Ok(Self::default())
+        }
+    }
 }
 
 impl Default for Config {
@@ -51,7 +92,7 @@ impl Site for Host {
         file: Bytes,
         file_name: F,
         mime: M,
-    ) -> Result<String, reqwest::Error> {
+    ) -> anyhow::Result<String> {
         match self {
             Self::Form(f) => f.upload(client, file, file_name, mime).await,
         }
@@ -86,7 +127,7 @@ impl Site for Form {
         file: Bytes,
         file_name: F,
         mime: M,
-    ) -> Result<String, reqwest::Error> {
+    ) -> anyhow::Result<String> {
         let mut form = MpForm::new().part(
             self.file_field.clone(),
             Part::stream(file.clone())
@@ -101,15 +142,18 @@ impl Site for Form {
         let mut header_map = HeaderMap::new();
         for (key, val) in headers.into_iter() {
             header_map.insert(
-                HeaderName::from_str(&key).unwrap(),
-                HeaderValue::from_str(&val).unwrap(),
+                HeaderName::from_str(&key)?,
+                HeaderValue::from_str(&val)?,
             );
         }
 
-        dbg!(&form);
-        let req = client.post(&self.url).headers(header_map).multipart(form);
-        dbg!(&req);
-        let resp = req.send().await?;
-        resp.text().await
+        Ok(client
+            .post(&self.url)
+            .headers(header_map)
+            .multipart(form)
+            .send()
+            .await?
+            .text()
+            .await?)
     }
 }

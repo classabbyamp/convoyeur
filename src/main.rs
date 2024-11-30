@@ -1,11 +1,11 @@
-use std::{env, fs::File};
+use std::env;
 
 use actix_web::{
-    get, http::header::ContentDisposition, post, web, App, HttpRequest, HttpResponse, HttpServer,
-    Responder,
+    get, http::header::ContentDisposition, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder
 };
-use log::{debug, info};
-use models::{Config, Site};
+use anyhow::{anyhow, Context};
+use log::debug;
+use models::{AppError, Config, Site};
 
 mod models;
 
@@ -23,66 +23,60 @@ async fn upload(
     body: web::Bytes,
     conf: web::Data<Config>,
     client: web::Data<reqwest::Client>,
-) -> impl Responder {
-    let disposition =
-        ContentDisposition::from_raw(req.headers().get("Content-Disposition").unwrap()).unwrap();
-    let file_name = disposition.get_filename().unwrap_or("file");
+) -> Result<impl Responder, AppError> {
+    let disp = match req.headers().get("Content-Disposition").map(ContentDisposition::from_raw) {
+        Some(Ok(d)) => d,
+        None | Some(Err(_)) => return Err(anyhow!("missing or malformed Content-Disposition header").into()),
+    };
+    let file_name = disp.get_filename().unwrap_or("file");
     let mime_type = req
         .headers()
         .get("Content-Type")
         .map_or(DEFAULT_MIME, |x| x.to_str().unwrap_or(DEFAULT_MIME));
-    debug!("file_name={:?}, mime_type={:?}", file_name, mime_type);
+    let file_size = body.len();
 
     if let Some(username) = req.headers().get("Soju-Username") {
-        let username = username.to_str().unwrap();
+        let username = match username.to_str() {
+            Ok(u) => u,
+            Err(e) => return Err(anyhow!("failed to get username: {}", e).into()),
+        };
+
         let maybe_host_id = if conf.users.contains_key(username) {
             conf.users.get(username)
         } else {
             conf.default_host.as_ref()
         };
-        debug!("username={:?}, maybe_host_id={:?}", username, maybe_host_id);
 
         if let Some(host_id) = maybe_host_id {
-            debug!("host_id={:?}", host_id);
             if let Some(host) = conf.hosts.get(host_id) {
-                debug!("host={:?}", host);
+                debug!("uploading file with file_name={:?}, mime_type={:?}, size={:?} to host {:?} for user {:?}",
+                       file_name, mime_type, file_size, host_id, username);
                 let url = host
                     .upload(client.get_ref(), body, file_name, mime_type)
-                    .await
-                    .unwrap();
-                debug!("url={:?}", url);
+                    .await.context("failed to upload to host")?;
 
-                return HttpResponse::Created()
+                return Ok(HttpResponse::Created()
                     .insert_header(("Location", url.trim()))
-                    .finish();
+                    .finish());
             }
-            debug!("host not found");
+            return Err(anyhow!("host {:?} does not exist in configuration", maybe_host_id).into());
         }
-        debug!("host_id not found");
+        return Err(anyhow!("host not found for user {:?}", username).into());
     }
-    debug!("username not found");
-    todo!()
+    Err(anyhow!("missing Soju-Username header").into())
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    let conf: models::Config = if let Some(conf_path) = env::var_os("ADAPTER_CONFIG") {
-        info!("loading configuration from {:?}", conf_path);
-        let input = File::open(conf_path)?;
-        hcl::from_reader(input).unwrap()
-    } else {
-        models::Config::default()
-    };
-    dbg!(&conf);
-
+    let conf = models::Config::from_env()?;
     let conf_data = web::Data::new(conf.clone());
     let client = web::Data::new(
         reqwest::Client::builder()
             .user_agent(USER_AGENT)
             .build()
-            .unwrap(),
+            .map_err(anyhow::Error::from),
     );
 
     HttpServer::new(move || {
