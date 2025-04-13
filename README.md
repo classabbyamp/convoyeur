@@ -1,11 +1,30 @@
-# filehost-adapter
+# Convoyeur
 
-IRC [FILEHOST](https://soju.im/filehost) extension adapter to external paste services.
+IRCv3 [FILEHOST](https://soju.im/filehost) extension adapter to external file upload services.
+
+## How it Works
+
+Convoyeur is designed to sit behind the bouncer or server that implements FILEHOST, and proxy
+upload requests to other places. It reads several headers to determine how to route an upload request:
+
+- `Soju-Username` or `X-Username`: username to look up in the user-to-host mapping
+- `X-Upload-Host`: the identifier of an upload host
+
+Convoyeur uses these headers in fallback-style logic:
+
+1. Use `X-Upload-Host` to select an upload host directly
+2. Use `Soju-Username` and find the matching upload host
+3. Use `X-Username` and find the matching upload host
+4. If no username or upload host is given, or there is no matching upload host found, the default upload
+   host is used (if it is defined)
+
+Convoyeur also uses the `Content-Type`, `Content-Disposition` (`filename` parameter), and `Content-Length`
+headers in accordance with the FILEHOST specification.
 
 ## Configuration
 
-filehost-adapter is configured via an [HCL](https://github.com/hashicorp/hcl/blob/main/hclsyntax/spec.md)
-file. This is passed to the program via the environment variable `ADAPTER_CONF=path/to/config.hcl`.
+Convoyeur is configured via an [HCL](https://github.com/hashicorp/hcl/blob/main/hclsyntax/spec.md)
+file. This is passed to the program via the environment variable `CONVOYEUR_CONF=path/to/config.hcl`.
 
 Logging can be configured via the [`RUST_LOG`](https://docs.rs/env_logger/latest/env_logger/#enabling-logging)
 environment variable (default: `RUST_LOG=info`).
@@ -64,4 +83,19 @@ host "rustypaste" {
   }
 }
 
+```
+
+## Soju Configuration
+
+To use this with the [soju](https://soju.im) bouncer, add the following to your soju configuration:
+
+- a `listen` directive for HTTP (`https://`, `http+unix://`, or `http+insecure://`), for clients to upload to
+- an `http-ingress` directive matching the HTTP `listen` directive
+- a `file-upload` directive pointing at convoyeur
+
+For example:
+```
+listen https://:6680
+http-ingress http://:6680
+file-upload http http://127.0.0.1:8069
 ```

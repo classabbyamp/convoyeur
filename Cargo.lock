@@ -424,6 +424,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
+name = "convoyeur"
+version = "0.0.1"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "derive_more 1.0.0",
+ "env_logger",
+ "hcl-rs",
+ "log",
+ "reqwest",
+ "serde",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -584,20 +598,6 @@ name = "fastrand"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "486f806e73c5707928240ddc295403b1b93c96a02038563881c4a2fd84b81ac4"
-
-[[package]]
-name = "filehost-adapter"
-version = "0.0.1"
-dependencies = [
- "actix-web",
- "anyhow",
- "derive_more 1.0.0",
- "env_logger",
- "hcl-rs",
- "log",
- "reqwest",
- "serde",
-]
 
 [[package]]
 name = "flate2"

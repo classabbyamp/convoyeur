@@ -57,7 +57,7 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> std::io::Result<Self> {
-        if let Some(conf_path) = env::var_os("ADAPTER_CONF") {
+        if let Some(conf_path) = env::var_os("CONVOYEUR_CONF") {
             info!("loading configuration from {:?}", conf_path);
             let input = File::open(conf_path)?;
             // TODO: remove unwrap

@@ -1,4 +1,14 @@
-rustypaste
+## TODO
+
+- EXIF stripping for images
+- Max file size?
+- respond to OPTIONS with allowable filetypes
+- listen on v4+v6?
+- 
+
+## Hosts
+
+#### rustypaste
 
 - form:
     - `file`: file
@@ -6,24 +16,28 @@ rustypaste
     - `Authorization`: token
     - `expire`: timeout
 
-0x0.st
+#### 0x0.st
 
 - form:
     - `file`: file
     - `expires`: timeout
     - `secret`: content ignored, but gives a longer url
 
-x0.at
+#### x0.at
 
 - form:
     - `file`: file
 
-paste.gentoo.zip (logpaste)
+#### paste.gentoo.zip (logpaste)
 
 - form:
     - `_`: file
 
-termbin.com: doesn't accept arbitrary files (png was mangled)
+#### termbin.com
+
+doesn't accept arbitrary files (png was mangled)
+
+## Config
 
 ```hcl
 bind {
