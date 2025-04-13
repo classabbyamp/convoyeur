@@ -36,6 +36,7 @@ The default configuration includes no configured hosts or users, so it is probab
 ```hcl
 bind = "localhost:8069"
 default_host = null
+upload_limit = 25
 ```
 
 ### Example configuration
@@ -43,35 +44,78 @@ default_host = null
 A more useful configuration might be:
 
 ```hcl
-# IP/hostname and port to run the adapter on
+# IP/hostname and port to run the adapter on.
+# to listen on both v4 and v6, use a domain that resolves to both, like localhost
 bind = "localhost:8069"
 # default host to use for users not listed in the users block
 default_host = "0x0.st"
-# maximum file size (mebibytes) [default: 25 MiB]
+# maximum file size (mebibytes)
+# note that some sites may have lower upload limits
 upload_limit = 100
 
 # mapping of username to file host ID
 users {
-  foo = "0x0.st"
-  bar = "rustypaste"
+  foo = "mypaste"
+  bar = null
 }
 
 # host id is given as the block label
-host "0x0.st" {
+host "mypaste" {
   # kind of upload, options:
   #  - form: multipart form
   kind = "form"
   # url to send uploads to
-  url = "https://0x0.st"
+  url = "https://paste.example.com"
   # for kind="form", the form field to use for the file
   file_field = "file"
   # additional fields to send (field_name = contents)
   fields = {
+    extra_value = "24"
+  }
+  # extra headers to add to the request (header_name = contents)
+  headers = {
+    Authorization = "myS3cr3tT0k3n"
+  }
+}
+```
+
+### Known working file upload services
+
+- [0x0.st](https://0x0.st)
+```hcl
+host "0x0.st" {
+  kind = "form"
+  url = "https://0x0.st"
+  file_field = "file"
+  fields = {
+    # optional
     expires = "24"
     secret = "yes"
   }
 }
-
+```
+- [x0.at](https://x0.at)
+```hcl
+host "x0.at" {
+    kind = "form"
+    url = "https://x0.at"
+    file_field = "file"
+    fields = {
+        id_length = "10"
+    }
+}
+```
+- [logpaste](https://github.com/mtlynch/logpaste)
+  (examples: [logpaste.com](https://logpaste.com), [paste.gentoo.zip](https://paste.gentoo.zip))
+```hcl
+host "logpaste" {
+    kind = "form"
+    url = "https://logpaste.com"
+    file_field = "_"
+}
+```
+- [rustypaste](https://github.com/orhun/rustypaste)
+```hcl
 host "rustypaste" {
   kind = "form"
   url = "https://rpaste.example.com"
@@ -79,7 +123,6 @@ host "rustypaste" {
   fields = {
     expire = "1d"
   }
-  # extra headers to add to the request (header_name = contents)
   headers = {
     Authorization = "myS3cr3tT0k3n"
   }
