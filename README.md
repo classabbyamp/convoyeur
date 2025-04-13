@@ -47,6 +47,8 @@ A more useful configuration might be:
 bind = "localhost:8069"
 # default host to use for users not listed in the users block
 default_host = "0x0.st"
+# maximum file size (mebibytes) [default: 25 MiB]
+upload_limit = 100
 
 # mapping of username to file host ID
 users {

@@ -1,7 +1,7 @@
 use std::env;
 
 use actix_web::{
-    get, http::{header::{Allow, ContentDisposition}, Method}, options, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder
+    get, http::header::ContentDisposition, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder
 };
 use anyhow::{anyhow, Context};
 use log::{debug, info};
@@ -15,15 +15,6 @@ static DEFAULT_MIME: &str = "application/octet-stream";
 #[get("/")]
 async fn index() -> impl Responder {
     HttpResponse::Ok().body(USER_AGENT)
-}
-
-#[options("/")]
-async fn upload_options() -> impl Responder {
-    HttpResponse::NoContent()
-        .insert_header(Allow(vec![Method::OPTIONS, Method::GET, Method::POST]))
-        // TODO: add config limits
-        .insert_header(("Accept-Post", "*"))
-        .finish()
 }
 
 #[post("/")]
@@ -121,7 +112,7 @@ async fn upload(
     let file_size = body.len();
 
     info!("uploading file with file_name={:?}, mime_type={:?}, size={:?} to host {:?} for user {:?}",
-           file_name, mime_type, file_size, host_id, username);
+           file_name, mime_type, file_size, host_id, username.unwrap_or("-"));
     let url = host
         .upload(client.get_ref(), body, file_name, mime_type)
         .await.context("failed to upload to host")?;
@@ -141,15 +132,15 @@ async fn main() -> std::io::Result<()> {
         reqwest::Client::builder()
             .user_agent(USER_AGENT)
             .build()
-            .map_err(anyhow::Error::from),
+            .unwrap()
     );
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::clone(&conf_data))
             .app_data(web::Data::clone(&client))
+            .app_data(web::PayloadConfig::new(conf.upload_limit.unwrap_or(25) * 1024 * 1024))
             .service(index)
-            .service(upload_options)
             .service(upload)
             .default_service(web::to(|| HttpResponse::NotFound()))
     })

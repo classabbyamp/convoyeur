@@ -50,6 +50,7 @@ impl From<anyhow::Error> for AppError {
 pub struct Config {
     pub bind: String,
     pub default_host: Option<String>,
+    pub upload_limit: Option<usize>,
     #[serde(rename = "host")]
     pub hosts: HashMap<String, Host>,
     pub users: HashMap<String, String>,
@@ -73,6 +74,7 @@ impl Default for Config {
         Self {
             bind: "localhost:8069".into(),
             default_host: None,
+            upload_limit: None,
             hosts: HashMap::new(),
             users: HashMap::new(),
         }
