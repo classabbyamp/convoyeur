@@ -1,7 +1,8 @@
 use std::env;
 
 use actix_web::{
-    get, http::header::ContentDisposition, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder
+    get, http::header::ContentDisposition, post, web, App, HttpRequest, HttpResponse, HttpServer,
+    Responder,
 };
 use anyhow::{anyhow, Context};
 use log::{debug, info};
@@ -37,9 +38,11 @@ async fn upload(
                 Some(s.to_owned())
             }
             Err(e) => {
-                return Err(anyhow!("Failed to decode host ID from X-Upload-Host header: {}", e).into());
+                return Err(
+                    anyhow!("Failed to decode host ID from X-Upload-Host header: {}", e).into(),
+                );
             }
-        }
+        },
         None => {
             debug!("X-Upload-Host header not found");
             None
@@ -54,9 +57,13 @@ async fn upload(
                     Some(s)
                 }
                 Err(e) => {
-                    return Err(anyhow!("Failed to decode username from Soju-Username header: {}", e).into());
+                    return Err(anyhow!(
+                        "Failed to decode username from Soju-Username header: {}",
+                        e
+                    )
+                    .into());
                 }
-            }
+            },
             None => {
                 debug!("Soju-Username header not found");
                 match req.headers().get("X-Username") {
@@ -66,9 +73,13 @@ async fn upload(
                             Some(s)
                         }
                         Err(e) => {
-                            return Err(anyhow!("Failed to decode username from X-Username header: {}", e).into());
+                            return Err(anyhow!(
+                                "Failed to decode username from X-Username header: {}",
+                                e
+                            )
+                            .into());
                         }
-                    }
+                    },
                     None => {
                         debug!("X-Username header not found");
                         None
@@ -103,12 +114,20 @@ async fn upload(
 
     let host = match conf.hosts.get(host_id) {
         Some(h) => h,
-        None => return Err(anyhow!("host {:?} does not exist in configuration", maybe_host_id).into()),
+        None => {
+            return Err(anyhow!("host {:?} does not exist in configuration", maybe_host_id).into())
+        }
     };
 
-    let disp = match req.headers().get("Content-Disposition").map(ContentDisposition::from_raw) {
+    let disp = match req
+        .headers()
+        .get("Content-Disposition")
+        .map(ContentDisposition::from_raw)
+    {
         Some(Ok(d)) => d,
-        None | Some(Err(_)) => return Err(anyhow!("missing or malformed Content-Disposition header").into()),
+        None | Some(Err(_)) => {
+            return Err(anyhow!("missing or malformed Content-Disposition header").into())
+        }
     };
     let file_name = disp.get_filename().unwrap_or("file");
     let mime_type = req
@@ -117,11 +136,18 @@ async fn upload(
         .map_or(DEFAULT_MIME, |x| x.to_str().unwrap_or(DEFAULT_MIME));
     let file_size = body.len();
 
-    info!("uploading file with file_name={:?}, mime_type={:?}, size={:?} to host {:?} for user {:?}",
-           file_name, mime_type, file_size, host_id, username.unwrap_or("-"));
+    info!(
+        "uploading file with file_name={:?}, mime_type={:?}, size={:?} to host {:?} for user {:?}",
+        file_name,
+        mime_type,
+        file_size,
+        host_id,
+        username.unwrap_or("-")
+    );
     let url = host
         .upload(client.get_ref(), body, file_name, mime_type)
-        .await.context("failed to upload to host")?;
+        .await
+        .context("failed to upload to host")?;
 
     return Ok(HttpResponse::Created()
         .insert_header(("Location", url.trim()))
@@ -138,14 +164,16 @@ async fn main() -> std::io::Result<()> {
         reqwest::Client::builder()
             .user_agent(USER_AGENT)
             .build()
-            .unwrap()
+            .unwrap(),
     );
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::clone(&conf_data))
             .app_data(web::Data::clone(&client))
-            .app_data(web::PayloadConfig::new(conf.upload_limit.unwrap_or(25) * 1024 * 1024))
+            .app_data(web::PayloadConfig::new(
+                conf.upload_limit.unwrap_or(25) * 1024 * 1024,
+            ))
             .service(index)
             .service(upload)
             .default_service(web::to(|| HttpResponse::NotFound()))

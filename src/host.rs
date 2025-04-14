@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::site::Site;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum Host {
@@ -73,10 +72,7 @@ impl Site for Form {
         let headers = self.headers.clone();
         let mut header_map = HeaderMap::new();
         for (key, val) in headers.into_iter() {
-            header_map.insert(
-                HeaderName::from_str(&key)?,
-                HeaderValue::from_str(&val)?,
-            );
+            header_map.insert(HeaderName::from_str(&key)?, HeaderValue::from_str(&val)?);
         }
 
         Ok(client
