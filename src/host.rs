@@ -1,8 +1,6 @@
-use std::{collections::HashMap, env, fs::File, str::FromStr};
+use std::{collections::HashMap, str::FromStr};
 
-use actix_web::{error::ResponseError, http::{header::ContentType, StatusCode}, web::Bytes, HttpResponse};
-use derive_more::derive::{Display, Error};
-use log::info;
+use actix_web::web::Bytes;
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     multipart::{Form as MpForm, Part},
@@ -10,76 +8,8 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 
-pub trait Site {
-    async fn upload<F: Into<String>, M: Into<String>>(
-        &self,
-        client: &Client,
-        file: Bytes,
-        file_name: F,
-        mime: M,
-    ) -> anyhow::Result<String>;
-}
+use crate::site::Site;
 
-#[derive(Debug, Display, Error)]
-#[display("{inner}")]
-pub struct AppError {
-    inner: anyhow::Error,
-}
-
-impl ResponseError for AppError {
-    fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
-        HttpResponse::build(self.status_code())
-            .insert_header(ContentType::plaintext())
-            .body(self.to_string())
-    }
-
-    fn status_code(&self) -> actix_web::http::StatusCode {
-        match self.inner {
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-
-impl From<anyhow::Error> for AppError {
-    fn from(value: anyhow::Error) -> Self {
-        Self { inner: value }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Config {
-    pub bind: String,
-    pub default_host: Option<String>,
-    pub upload_limit: Option<usize>,
-    #[serde(rename = "host")]
-    pub hosts: HashMap<String, Host>,
-    pub users: HashMap<String, String>,
-}
-
-impl Config {
-    pub fn from_env() -> std::io::Result<Self> {
-        if let Some(conf_path) = env::var_os("CONVOYEUR_CONF") {
-            info!("loading configuration from {:?}", conf_path);
-            let input = File::open(conf_path)?;
-            // TODO: remove unwrap
-            Ok(hcl::from_reader(input).unwrap())
-        } else {
-            Ok(Self::default())
-        }
-    }
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            bind: "localhost:8069".into(),
-            default_host: None,
-            upload_limit: None,
-            hosts: HashMap::new(),
-            users: HashMap::new(),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]

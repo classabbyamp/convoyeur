@@ -5,9 +5,15 @@ use actix_web::{
 };
 use anyhow::{anyhow, Context};
 use log::{debug, info};
-use models::{AppError, Config, Site};
 
-mod models;
+use crate::config::Config;
+use crate::err::AppError;
+use crate::site::Site;
+
+mod config;
+mod err;
+mod host;
+mod site;
 
 static USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 static DEFAULT_MIME: &str = "application/octet-stream";
@@ -126,7 +132,7 @@ async fn upload(
 async fn main() -> std::io::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    let conf = models::Config::from_env()?;
+    let conf = Config::from_env()?;
     let conf_data = web::Data::new(conf.clone());
     let client = web::Data::new(
         reqwest::Client::builder()
