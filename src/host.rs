@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, fmt, str::FromStr};
 
 use actix_web::web::Bytes;
 use reqwest::{
@@ -14,6 +14,14 @@ use crate::site::Site;
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum Host {
     Form(Form),
+}
+
+impl fmt::Display for Host {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Form(v) => write!(f, "Host(Form({}))", v),
+        }
+    }
 }
 
 impl Site for Host {
@@ -38,6 +46,12 @@ pub struct Form {
     pub fields: HashMap<String, String>,
     #[serde(default)]
     pub headers: HashMap<String, String>,
+}
+
+impl fmt::Display for Form {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.url)
+    }
 }
 
 impl Default for Form {

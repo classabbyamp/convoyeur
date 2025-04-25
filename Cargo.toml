@@ -4,11 +4,12 @@ version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-actix-web = { version = "4.10.2", default-features = false, features = ["macros", "compress-gzip"] }
+actix-web = { version = "4.10.2", default-features = false }
 anyhow = "1.0.93"
 derive_more = { version = "2.0.1", features = ["display", "error"] }
 env_logger = "0.11.5"
 hcl-rs = "0.18.2"
+little_exif = "0.6.3"
 log = "0.4.22"
-reqwest = { version = "0.12.15", features = ["brotli", "charset", "default-tls", "deflate", "gzip", "http2", "multipart"], default-features = false }
+reqwest = { version = "0.12.15", features = ["charset", "default-tls", "http2", "multipart"], default-features = false }
 serde = { version = "1.0.219", features = ["derive"] }
