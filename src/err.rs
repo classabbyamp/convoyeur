@@ -1,3 +1,8 @@
+// err.rs: part of convoyeur
+//
+// Copyright (c) 2025 classabbyamp
+// SPDX-License-Identifier: LiLiQ-P-1.1
+
 use actix_web::{
     http::{header::ContentType, StatusCode},
     HttpResponse, ResponseError,

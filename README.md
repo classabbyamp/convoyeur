@@ -144,3 +144,10 @@ listen https://:6680
 http-ingress http://:6680
 file-upload http http://127.0.0.1:8069
 ```
+
+## Copyright
+
+Copyright (c) 2024-2025 classabbyamp
+
+This program is released under the terms of the *Québec Free and Open-Source Licence - Permissive (LiLiQ-P)*, version 1.1.
+See [`LICENCE`](./LICENCE) for full licence text (Français / English).

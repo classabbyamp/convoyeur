@@ -1,3 +1,8 @@
+// site.rs: part of convoyeur
+//
+// Copyright (c) 2025 classabbyamp
+// SPDX-License-Identifier: LiLiQ-P-1.1
+
 use actix_web::web::Bytes;
 use reqwest::Client;
 
