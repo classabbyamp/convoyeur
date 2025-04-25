@@ -2,6 +2,7 @@ use actix_web::{
     body::MessageBody,
     dev::{ServiceRequest, ServiceResponse},
     error::{ErrorFailedDependency, ErrorPreconditionFailed},
+    http::header::ContentDisposition,
     middleware::Next,
     web::Bytes,
     Error, HttpMessage,
@@ -9,8 +10,7 @@ use actix_web::{
 use little_exif::{filetype::FileExtension, metadata::Metadata};
 use log::{debug, info};
 
-use crate::config::Config;
-use crate::DEFAULT_MIME;
+use crate::{attrs::FileAttrs, config::Config};
 
 pub async fn check_headers(
     req: ServiceRequest,
@@ -117,6 +117,35 @@ pub async fn check_headers(
     next.call(req).await
 }
 
+pub async fn get_file_attrs(
+    req: ServiceRequest,
+    next: Next<impl MessageBody>,
+) -> Result<ServiceResponse<impl MessageBody>, Error> {
+    let disp = match req
+        .headers()
+        .get("Content-Disposition")
+        .map(ContentDisposition::from_raw)
+    {
+        Some(Ok(d)) => d,
+        None | Some(Err(_)) => {
+            return Err(
+                ErrorPreconditionFailed("missing or malformed Content-Disposition header").into(),
+            )
+        }
+    };
+
+    let file_name = disp.get_filename();
+    let mime_type = req
+        .headers()
+        .get("Content-Type")
+        .map_or(None, |x| x.to_str().ok());
+
+    req.extensions_mut()
+        .insert(FileAttrs::from(file_name, mime_type));
+
+    next.call(req).await
+}
+
 pub async fn strip_exif(
     mut req: ServiceRequest,
     next: Next<impl MessageBody>,
@@ -127,20 +156,20 @@ pub async fn strip_exif(
     };
 
     if conf.strip_exif {
-        let mime = req
-            .headers()
-            .get("Content-Type")
-            .map_or(DEFAULT_MIME, |x| x.to_str().unwrap_or(DEFAULT_MIME));
+        let extension = {
+            let exts = req.extensions();
+            let file_attrs = exts.get::<FileAttrs>().unwrap();
 
-        let extension = match mime {
-            "image/png" => Some(FileExtension::PNG {
-                as_zTXt_chunk: false,
-            }),
-            "image/jpeg" => Some(FileExtension::JPEG),
-            "image/jxl" => Some(FileExtension::JXL),
-            "image/tiff" => Some(FileExtension::TIFF),
-            "image/webp" => Some(FileExtension::WEBP),
-            _ => None,
+            match file_attrs.mime.as_str() {
+                "image/png" => Some(FileExtension::PNG {
+                    as_zTXt_chunk: false,
+                }),
+                "image/jpeg" => Some(FileExtension::JPEG),
+                "image/jxl" => Some(FileExtension::JXL),
+                "image/tiff" => Some(FileExtension::TIFF),
+                "image/webp" => Some(FileExtension::WEBP),
+                _ => None,
+            }
         };
 
         if let Some(ext) = extension {

@@ -2,18 +2,18 @@ use std::env;
 
 use actix_web::middleware::from_fn;
 use actix_web::HttpMessage;
-use actix_web::{
-    http::header::ContentDisposition, web, App, HttpRequest, HttpResponse, HttpServer, Responder,
-};
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use anyhow::{anyhow, Context};
 use log::info;
 
+use crate::attrs::FileAttrs;
 use crate::config::Config;
 use crate::err::AppError;
 use crate::host::Host;
-use crate::middleware::{check_headers, strip_exif};
+use crate::middleware::{check_headers, get_file_attrs, strip_exif};
 use crate::site::Site;
 
+mod attrs;
 mod config;
 mod err;
 mod host;
@@ -21,7 +21,6 @@ mod middleware;
 mod site;
 
 static USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
-static DEFAULT_MIME: &str = "application/octet-stream";
 
 async fn index() -> impl Responder {
     HttpResponse::Ok().body(USER_AGENT)
@@ -33,29 +32,12 @@ async fn upload(
     client: web::Data<reqwest::Client>,
 ) -> Result<impl Responder, AppError> {
     if let Some(host) = req.extensions().get::<Host>() {
-        let disp = match req
-            .headers()
-            .get("Content-Disposition")
-            .map(ContentDisposition::from_raw)
-        {
-            Some(Ok(d)) => d,
-            None | Some(Err(_)) => {
-                return Err(anyhow!("missing or malformed Content-Disposition header").into())
-            }
-        };
-        let file_name = disp.get_filename().unwrap_or("file");
-        let mime_type = req
-            .headers()
-            .get("Content-Type")
-            .map_or(DEFAULT_MIME, |x| x.to_str().unwrap_or(DEFAULT_MIME));
-        let file_size = body.len();
+        let exts = req.extensions();
+        let attrs = exts.get::<FileAttrs>().unwrap();
 
-        info!(
-            "uploading file with file_name={:?}, mime_type={:?}, size={:?} to host {}",
-            file_name, mime_type, file_size, host
-        );
+        info!("uploading file {} to host {}", attrs, host);
         let url = host
-            .upload(client.get_ref(), body, file_name, mime_type)
+            .upload(client.get_ref(), body, &attrs.name, &attrs.mime)
             .await
             .context("failed to upload to host")?;
 
@@ -92,11 +74,12 @@ fn main() -> std::io::Result<()> {
                     web::resource("/")
                         .route(web::post().to(upload))
                         .wrap(from_fn(strip_exif))
+                        .wrap(from_fn(get_file_attrs))
                         .wrap(from_fn(check_headers)),
                 )
                 .default_service(web::to(|| HttpResponse::NotFound()))
         })
         .bind(conf.bind)?
-        .run()
+        .run(),
     )
 }
