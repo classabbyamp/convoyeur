@@ -10,6 +10,7 @@ pub struct Config {
     pub bind: String,
     pub default_host: Option<String>,
     pub upload_limit: Option<usize>,
+    pub strip_exif: bool,
     #[serde(rename = "host")]
     pub hosts: HashMap<String, Host>,
     pub users: HashMap<String, String>,
@@ -34,6 +35,7 @@ impl Default for Config {
             bind: "localhost:8069".into(),
             default_host: None,
             upload_limit: None,
+            strip_exif: false,
             hosts: HashMap::new(),
             users: HashMap::new(),
         }
