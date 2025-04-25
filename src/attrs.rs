@@ -1,3 +1,8 @@
+// attrs.rs: part of convoyeur
+//
+// Copyright (c) 2025 classabbyamp
+// SPDX-License-Identifier: LiLiQ-P-1.1
+
 use std::fmt;
 
 static DEFAULT_MIME: &str = "application/octet-stream";

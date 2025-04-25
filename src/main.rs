@@ -1,3 +1,8 @@
+// Convoyeur
+//
+// Copyright (c) 2024-2025 classabbyamp
+// SPDX-License-Identifier: LiLiQ-P-1.1
+
 use std::env;
 
 use actix_web::middleware::from_fn;

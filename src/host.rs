@@ -1,3 +1,8 @@
+// host.rs: part of convoyeur
+//
+// Copyright (c) 2025 classabbyamp
+// SPDX-License-Identifier: LiLiQ-P-1.1
+
 use std::{collections::HashMap, fmt, str::FromStr};
 
 use actix_web::web::Bytes;
