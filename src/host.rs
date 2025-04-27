@@ -3,7 +3,7 @@
 // Copyright (c) 2025 classabbyamp
 // SPDX-License-Identifier: LiLiQ-P-1.1
 
-use std::{collections::HashMap, fmt, str::FromStr};
+use std::{collections::HashMap, error::Error, fmt, str::FromStr};
 
 use actix_web::web::Bytes;
 use reqwest::{
@@ -36,7 +36,7 @@ impl Site for Host {
         file: Bytes,
         file_name: F,
         mime: M,
-    ) -> anyhow::Result<String> {
+    ) -> Result<String, Box<dyn Error>> {
         match self {
             Self::Form(f) => f.upload(client, file, file_name, mime).await,
         }
@@ -77,7 +77,7 @@ impl Site for Form {
         file: Bytes,
         file_name: F,
         mime: M,
-    ) -> anyhow::Result<String> {
+    ) -> Result<String, Box<dyn Error>> {
         let mut form = MpForm::new().part(
             self.file_field.clone(),
             Part::stream(file.clone())

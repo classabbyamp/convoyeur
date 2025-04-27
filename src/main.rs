@@ -8,7 +8,6 @@ use std::env;
 use actix_web::middleware::{from_fn, Logger};
 use actix_web::HttpMessage;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use anyhow::{anyhow, Context};
 use log::info;
 
 use crate::attrs::FileAttrs;
@@ -41,16 +40,19 @@ async fn upload(
         let attrs = exts.get::<FileAttrs>().unwrap();
 
         info!("uploading file {} to host {}", attrs, host);
-        let url = host
+        let url = match host
             .upload(client.get_ref(), body, &attrs.name, &attrs.mime)
             .await
-            .context("failed to upload to host")?;
+        {
+            Ok(u) => u,
+            Err(e) => return Err(format!("failed to upload to host: {}", e).into()),
+        };
 
         Ok(HttpResponse::Created()
             .insert_header(("Location", url.trim()))
             .finish())
     } else {
-        Err(anyhow!("no upload host specified").into())
+        Err("no upload host specified".into())
     }
 }
 

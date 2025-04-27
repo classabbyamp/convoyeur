@@ -3,16 +3,38 @@
 // Copyright (c) 2025 classabbyamp
 // SPDX-License-Identifier: LiLiQ-P-1.1
 
+use std::{error::Error, fmt::Display};
+
 use actix_web::{
     http::{header::ContentType, StatusCode},
     HttpResponse, ResponseError,
 };
-use derive_more::derive::{Display, Error};
 
-#[derive(Debug, Display, Error)]
-#[display("{inner}")]
+#[derive(Debug)]
 pub struct AppError {
-    inner: anyhow::Error,
+    inner: Box<dyn Error>,
+}
+
+impl From<&str> for AppError {
+    fn from(value: &str) -> Self {
+        Self {
+            inner: Box::<dyn Error>::from(value),
+        }
+    }
+}
+
+impl From<String> for AppError {
+    fn from(value: String) -> Self {
+        Self {
+            inner: Box::<dyn Error>::from(value),
+        }
+    }
+}
+
+impl Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner)
+    }
 }
 
 impl ResponseError for AppError {
@@ -23,14 +45,6 @@ impl ResponseError for AppError {
     }
 
     fn status_code(&self) -> actix_web::http::StatusCode {
-        match self.inner {
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-
-impl From<anyhow::Error> for AppError {
-    fn from(value: anyhow::Error) -> Self {
-        Self { inner: value }
+        StatusCode::INTERNAL_SERVER_ERROR
     }
 }

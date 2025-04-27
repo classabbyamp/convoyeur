@@ -101,7 +101,9 @@ pub async fn check_headers(
                 match &conf.default_host {
                     Some(h) => h,
                     None => {
-                        return Err(ErrorPreconditionFailed("default upload host not defined").into())
+                        return Err(
+                            ErrorPreconditionFailed("default upload host not defined").into()
+                        )
                     }
                 }
             }
