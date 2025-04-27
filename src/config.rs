@@ -15,6 +15,7 @@ pub struct Config {
     pub bind: String,
     pub default_host: Option<String>,
     pub upload_limit: Option<usize>,
+    #[serde(default)]
     pub strip_exif: bool,
     #[serde(rename = "host")]
     pub hosts: HashMap<String, Host>,

@@ -10,7 +10,10 @@ anyhow = "1.0.93"
 derive_more = { version = "2.0.1", features = ["display", "error"] }
 env_logger = "0.11.5"
 hcl-rs = "0.18.2"
-little_exif = "0.6.3"
-log = "0.4.22"
+little_exif = "0.6.4"
+log = "0.4"
 reqwest = { version = "0.12.15", features = ["charset", "default-tls", "http2", "multipart"], default-features = false }
 serde = { version = "1.0.219", features = ["derive"] }
+
+[patch.crates-io]
+little_exif = { git = "https://github.com/classabbyamp/little_exif.git", branch = "test-things" }

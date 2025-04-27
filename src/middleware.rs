@@ -9,11 +9,11 @@ use actix_web::{
     error::{ErrorFailedDependency, ErrorPreconditionFailed},
     http::header::ContentDisposition,
     middleware::Next,
-    web::Bytes,
+    web::{Bytes, Data},
     Error, HttpMessage,
 };
 use little_exif::{filetype::FileExtension, metadata::Metadata};
-use log::{debug, info};
+use log::debug;
 
 use crate::{attrs::FileAttrs, config::Config};
 
@@ -75,45 +75,47 @@ pub async fn check_headers(
         None
     };
 
-    let conf = match req.app_data::<&Config>() {
-        Some(c) => c,
-        None => return Err(ErrorFailedDependency("could not load configuration")),
-    };
-
-    if let Some(uname) = username {
-        maybe_host_id = match conf.users.get(uname) {
-            Some(s) => {
-                info!("Found host {:?} for user {:?}", s, uname);
-                Some(s.to_owned())
-            }
-            None => {
-                debug!("no upload host found for user");
-                None
-            }
+    let host = {
+        let conf = match req.app_data::<Data<Config>>() {
+            Some(c) => c,
+            None => return Err(ErrorFailedDependency("could not load configuration")),
         };
-    };
 
-    let host_id = match &maybe_host_id {
-        Some(h) => h,
-        None => {
-            debug!("using default upload host");
-            match &conf.default_host {
-                Some(h) => h,
+        if let Some(uname) = username {
+            maybe_host_id = match conf.users.get(uname) {
+                Some(s) => {
+                    debug!("Found host {:?} for user {:?}", s, uname);
+                    Some(s.to_owned())
+                }
                 None => {
-                    return Err(ErrorPreconditionFailed("default upload host not defined").into())
+                    debug!("no upload host found for user");
+                    None
+                }
+            };
+        };
+
+        let host_id = match &maybe_host_id {
+            Some(h) => h,
+            None => {
+                debug!("using default upload host");
+                match &conf.default_host {
+                    Some(h) => h,
+                    None => {
+                        return Err(ErrorPreconditionFailed("default upload host not defined").into())
+                    }
                 }
             }
-        }
-    };
+        };
 
-    let host = match conf.hosts.get(host_id) {
-        Some(h) => h,
-        None => {
-            return Err(ErrorPreconditionFailed(format!(
-                "host {:?} does not exist in configuration",
-                host_id
-            ))
-            .into())
+        match conf.hosts.get(host_id) {
+            Some(h) => h.clone(),
+            None => {
+                return Err(ErrorPreconditionFailed(format!(
+                    "host {:?} does not exist in configuration",
+                    host_id
+                ))
+                .into())
+            }
         }
     };
 
@@ -155,7 +157,7 @@ pub async fn strip_exif(
     mut req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
-    let conf = match req.app_data::<&Config>() {
+    let conf = match req.app_data::<Data<Config>>() {
         Some(c) => c,
         None => return Err(ErrorFailedDependency("could not load configuration")),
     };
@@ -167,7 +169,7 @@ pub async fn strip_exif(
 
             match file_attrs.mime.as_str() {
                 "image/png" => Some(FileExtension::PNG {
-                    as_zTXt_chunk: false,
+                    as_zTXt_chunk: true,
                 }),
                 "image/jpeg" => Some(FileExtension::JPEG),
                 "image/jxl" => Some(FileExtension::JXL),
@@ -178,12 +180,16 @@ pub async fn strip_exif(
         };
 
         if let Some(ext) = extension {
+            debug!("clearing EXIF metadata");
             let body = req.extract::<Bytes>().await?;
             let mut buf = body.to_vec();
 
             Metadata::clear_metadata(&mut buf, ext)?;
-            Metadata::clear_app12_segment(&mut buf, ext)?;
-            Metadata::clear_app13_segment(&mut buf, ext)?;
+
+            if ext == FileExtension::JPEG {
+                Metadata::clear_app12_segment(&mut buf, ext)?;
+                Metadata::clear_app13_segment(&mut buf, ext)?;
+            }
 
             let body: Bytes = buf.into();
             req.set_payload(body.into());
