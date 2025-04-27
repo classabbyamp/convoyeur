@@ -5,7 +5,7 @@
 
 use std::env;
 
-use actix_web::middleware::from_fn;
+use actix_web::middleware::{from_fn, Logger};
 use actix_web::HttpMessage;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use anyhow::{anyhow, Context};
@@ -55,7 +55,7 @@ async fn upload(
 }
 
 fn main() -> std::io::Result<()> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(env_logger::Env::new().default_filter_or("info")).init();
 
     let conf = Config::from_env()?;
     let conf_data = web::Data::new(conf.clone());
@@ -74,9 +74,10 @@ fn main() -> std::io::Result<()> {
                 .app_data(web::PayloadConfig::new(
                     conf.upload_limit.unwrap_or(25) * 1024 * 1024,
                 ))
+                .wrap(Logger::default())
                 .service(web::resource("/").route(web::get().to(index)))
                 .service(
-                    web::resource("/")
+                    web::resource("/upload")
                         .route(web::post().to(upload))
                         .wrap(from_fn(strip_exif))
                         .wrap(from_fn(get_file_attrs))
