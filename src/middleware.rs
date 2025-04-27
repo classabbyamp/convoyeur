@@ -6,7 +6,7 @@
 use actix_web::{
     body::MessageBody,
     dev::{ServiceRequest, ServiceResponse},
-    error::{ErrorFailedDependency, ErrorPreconditionFailed},
+    error::{ErrorInternalServerError, ErrorNotFound},
     http::header::ContentDisposition,
     middleware::Next,
     web::{Bytes, Data},
@@ -78,7 +78,7 @@ pub async fn check_headers(
     let host = {
         let conf = match req.app_data::<Data<Config>>() {
             Some(c) => c,
-            None => return Err(ErrorFailedDependency("could not load configuration")),
+            None => return Err(ErrorInternalServerError("could not load configuration")),
         };
 
         if let Some(uname) = username {
@@ -102,7 +102,7 @@ pub async fn check_headers(
                     Some(h) => h,
                     None => {
                         return Err(
-                            ErrorPreconditionFailed("default upload host not defined").into()
+                            ErrorNotFound("default upload host not defined").into()
                         )
                     }
                 }
@@ -112,7 +112,7 @@ pub async fn check_headers(
         match conf.hosts.get(host_id) {
             Some(h) => h.clone(),
             None => {
-                return Err(ErrorPreconditionFailed(format!(
+                return Err(ErrorNotFound(format!(
                     "host {:?} does not exist in configuration",
                     host_id
                 ))
@@ -138,7 +138,7 @@ pub async fn get_file_attrs(
         Some(Ok(d)) => d,
         None | Some(Err(_)) => {
             return Err(
-                ErrorPreconditionFailed("missing or malformed Content-Disposition header").into(),
+                ErrorInternalServerError("missing or malformed Content-Disposition header").into(),
             )
         }
     };
@@ -161,7 +161,7 @@ pub async fn strip_exif(
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
     let conf = match req.app_data::<Data<Config>>() {
         Some(c) => c,
-        None => return Err(ErrorFailedDependency("could not load configuration")),
+        None => return Err(ErrorInternalServerError("could not load configuration")),
     };
 
     if conf.strip_exif {
