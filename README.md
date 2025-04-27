@@ -52,6 +52,9 @@ default_host = "0x0.st"
 # maximum file size (mebibytes)
 # note that some sites may have lower upload limits
 upload_limit = 100
+# enable stripping of EXIF metadata from photos (supported for PNG, JPEG, JXL, TIFF, and WebP)
+# warning: may increase RAM usage, especially with high upload limits and many users
+strip_exif = false
 
 # mapping of username to file host ID
 users {
@@ -142,7 +145,7 @@ For example:
 ```
 listen https://:6680
 http-ingress http://:6680
-file-upload http http://127.0.0.1:8069
+file-upload http http://127.0.0.1:8069/upload
 ```
 
 ## Copyright
