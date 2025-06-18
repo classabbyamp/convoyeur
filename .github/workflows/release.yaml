@@ -11,11 +11,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  GH_TOKEN: ${{ github.token }}
+
 jobs:
   release:
     name: Create release
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Create release
         run: |
           gh release create --notes-from-tag --draft ${{ github.ref_name }}
@@ -41,4 +46,6 @@ jobs:
       - name: Build
         run: cargo build --profile release-bin
       - name: Upload to release
-        run: gh release upload ${{ github.ref_name }} ./target/release-bin/convoyeur#convoyeur.${{ matrix.config.arch }}
+        run: |
+          cp ./target/release-bin/convoyeur convoyeur.${{ matrix.config.arch }}
+          gh release upload ${{ github.ref_name }} ./convoyeur.${{ matrix.config.arch }}#convoyeur.${{ matrix.config.arch }}
