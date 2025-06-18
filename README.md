@@ -21,6 +21,29 @@ Convoyeur uses these headers in fallback-style logic:
 Convoyeur also uses the `Content-Type`, `Content-Disposition` (`filename` parameter), and `Content-Length`
 headers in accordance with the FILEHOST specification.
 
+## Installation
+
+### Build from source
+
+1. Install a Rust toolchain, either via your distribution package manager or with [rustup](https://rustup.rs)
+2. `cargo build --release`
+3. The binary will be at `./target/release/convoyeur`
+
+### Static Binaries
+
+Statically-linked binaries are available for x86_64 and aarch64 and attached as assets to the [latest release](https://github.com/classabbyamp/convoyeur/releases/latest).
+
+### OCI Container
+
+OCI (docker, podman, etc) containers are available for `linux/amd64` and `linux/arm64` platforms on the [Github Container Registry](https://github.com/classabbyamp/convoyeur/pkgs/container/convoyeur).
+
+By default, they expose port 8069 and look for a config file at `/config.hcl`.
+
+For example:
+```
+docker run -p 8069:8069 -v ./config.hcl:/config.hcl ghcr.io/classabbyamp/convoyeur:latest
+```
+
 ## Configuration
 
 Convoyeur is configured via an [HCL](https://github.com/hashicorp/hcl/blob/main/hclsyntax/spec.md)
