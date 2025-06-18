@@ -41,7 +41,7 @@ async fn upload(
             let attrs = exts.get::<FileAttrs>().unwrap().clone();
             (h.clone(), attrs)
         } else {
-            return Err("no upload host specified".into())
+            return Err("no upload host specified".into());
         }
     };
 

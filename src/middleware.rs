@@ -100,11 +100,7 @@ pub async fn check_headers(
                 debug!("using default upload host");
                 match &conf.default_host {
                     Some(h) => h,
-                    None => {
-                        return Err(
-                            ErrorNotFound("default upload host not defined")
-                        )
-                    }
+                    None => return Err(ErrorNotFound("default upload host not defined")),
                 }
             }
         };
@@ -115,8 +111,7 @@ pub async fn check_headers(
                 return Err(ErrorNotFound(format!(
                     "host {:?} does not exist in configuration",
                     host_id
-                ))
-                )
+                )))
             }
         }
     };
@@ -137,9 +132,9 @@ pub async fn get_file_attrs(
     {
         Some(Ok(d)) => d,
         None | Some(Err(_)) => {
-            return Err(
-                ErrorInternalServerError("missing or malformed Content-Disposition header"),
-            )
+            return Err(ErrorInternalServerError(
+                "missing or malformed Content-Disposition header",
+            ))
         }
     };
 
