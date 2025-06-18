@@ -29,14 +29,17 @@ jobs:
         PATH: '/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/sbin:/usr/local/bin:/tmp/bin'
     steps:
       - name: Install Dependencies
-        run: xbps-install -Suy xbps && xbps-install -uy git bash cargo
+        run: |
+          xbps-install -Suy xbps && \
+            xbps-install -uy git bash base-devel rustup cargo-auditable && \
+            rustup-init -y
       - name: Checkout
         uses: classabbyamp/treeless-checkout-action@v1
       - name: Cargo build (debug)
-        run: cargo build
+        run: . ~/.cargo/env && cargo build
       - name: Cargo build (release)
-        run: cargo build --profile release-bin
+        run: . ~/.cargo/env && cargo build --profile release-bin
       - name: Cargo clippy
-        run: cargo clippy
+        run: . ~/.cargo/env && cargo clippy
       - name: Cargo fmt
-        run: cargo fmt --check --all
+        run: . ~/.cargo/env && cargo fmt --check --all

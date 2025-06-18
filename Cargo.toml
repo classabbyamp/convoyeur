@@ -1,6 +1,6 @@
 [package]
 name = "convoyeur"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2021"
 license = "LiliQ-P-1.1"
 
