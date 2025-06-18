@@ -35,25 +35,28 @@ async fn upload(
     body: web::Bytes,
     client: web::Data<reqwest::Client>,
 ) -> Result<impl Responder, AppError> {
-    if let Some(host) = req.extensions().get::<Host>() {
+    let (host, attrs) = {
         let exts = req.extensions();
-        let attrs = exts.get::<FileAttrs>().unwrap();
+        if let Some(h) = exts.get::<Host>() {
+            let attrs = exts.get::<FileAttrs>().unwrap().clone();
+            (h.clone(), attrs)
+        } else {
+            return Err("no upload host specified".into())
+        }
+    };
 
-        info!("uploading file {} to host {}", attrs, host);
-        let url = match host
-            .upload(client.get_ref(), body, &attrs.name, &attrs.mime)
-            .await
-        {
-            Ok(u) => u,
-            Err(e) => return Err(format!("failed to upload to host: {}", e).into()),
-        };
+    info!("uploading file {} to host {}", attrs, host);
+    let url = match host
+        .upload(client.get_ref(), body, &attrs.name, &attrs.mime)
+        .await
+    {
+        Ok(u) => u,
+        Err(e) => return Err(format!("failed to upload to host: {}", e).into()),
+    };
 
-        Ok(HttpResponse::Created()
-            .insert_header(("Location", url.trim()))
-            .finish())
-    } else {
-        Err("no upload host specified".into())
-    }
+    Ok(HttpResponse::Created()
+        .insert_header(("Location", url.trim()))
+        .finish())
 }
 
 fn main() -> std::io::Result<()> {
@@ -85,7 +88,7 @@ fn main() -> std::io::Result<()> {
                         .wrap(from_fn(get_file_attrs))
                         .wrap(from_fn(check_headers)),
                 )
-                .default_service(web::to(|| HttpResponse::NotFound()))
+                .default_service(web::to(HttpResponse::NotFound))
         })
         .bind(conf.bind)?
         .run(),

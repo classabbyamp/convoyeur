@@ -102,7 +102,7 @@ pub async fn check_headers(
                     Some(h) => h,
                     None => {
                         return Err(
-                            ErrorNotFound("default upload host not defined").into()
+                            ErrorNotFound("default upload host not defined")
                         )
                     }
                 }
@@ -116,7 +116,7 @@ pub async fn check_headers(
                     "host {:?} does not exist in configuration",
                     host_id
                 ))
-                .into())
+                )
             }
         }
     };
@@ -138,7 +138,7 @@ pub async fn get_file_attrs(
         Some(Ok(d)) => d,
         None | Some(Err(_)) => {
             return Err(
-                ErrorInternalServerError("missing or malformed Content-Disposition header").into(),
+                ErrorInternalServerError("missing or malformed Content-Disposition header"),
             )
         }
     };
@@ -147,7 +147,7 @@ pub async fn get_file_attrs(
     let mime_type = req
         .headers()
         .get("Content-Type")
-        .map_or(None, |x| x.to_str().ok());
+        .and_then(|x| x.to_str().ok());
 
     req.extensions_mut()
         .insert(FileAttrs::from(file_name, mime_type));
