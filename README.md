@@ -138,13 +138,13 @@ host "rustypaste" {
 To use this with the [soju](https://soju.im) bouncer, add the following to your soju configuration:
 
 - a `listen` directive for HTTP (`https://`, `http+unix://`, or `http+insecure://`), for clients to upload to
-- an `http-ingress` directive matching the HTTP `listen` directive
+- an `http-ingress` directive for the internet-facing URL on which the HTTP(S) listener is exposed
 - a `file-upload` directive pointing at convoyeur
 
 For example:
 ```
 listen https://:6680
-http-ingress http://:6680
+http-ingress https://soju.example.com
 file-upload http http://127.0.0.1:8069/upload
 ```
 
