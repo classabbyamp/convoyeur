@@ -7,6 +7,7 @@ use std::fmt;
 
 static DEFAULT_MIME: &str = "application/octet-stream";
 
+#[derive(Debug, Clone)]
 pub struct FileAttrs {
     pub name: String,
     pub mime: String,
