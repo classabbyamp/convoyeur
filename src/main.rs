@@ -5,7 +5,10 @@
 
 use std::env;
 
+use actix_web::error::ErrorInternalServerError;
 use actix_web::middleware::{from_fn, Logger};
+use actix_web::web::Data;
+use actix_web::Error;
 use actix_web::HttpMessage;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use log::info;
@@ -26,8 +29,21 @@ mod site;
 
 static USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
-async fn index() -> impl Responder {
-    HttpResponse::Ok().body(USER_AGENT)
+async fn index(req: HttpRequest) -> Result<impl Responder, Error> {
+    let conf = match req.app_data::<Data<Config>>() {
+        Some(c) => c,
+        None => return Err(ErrorInternalServerError("could not load configuration")),
+    };
+    let body = format!(
+        "{}\n\n{} users and {} hosts\ndefault host: {:?}\nstrip exif: {}\nupload limit: {:?} MiB\n",
+        USER_AGENT,
+        conf.users.len(),
+        conf.hosts.len(),
+        conf.default_host,
+        conf.strip_exif,
+        conf.upload_limit
+    );
+    Ok(HttpResponse::Ok().body(body))
 }
 
 async fn upload(
@@ -63,6 +79,14 @@ fn main() -> std::io::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::new().default_filter_or("info")).init();
 
     let conf = Config::from_env()?;
+    info!(
+        "CONF: {} users and {} hosts",
+        conf.users.len(),
+        conf.hosts.len()
+    );
+    info!("CONF: default host: {:?}", conf.default_host);
+    info!("CONF: strip exif: {}", conf.strip_exif);
+    info!("CONF: upload limit: {:?} MiB", conf.upload_limit);
     let conf_data = web::Data::new(conf.clone());
     let client = web::Data::new(
         reqwest::Client::builder()
