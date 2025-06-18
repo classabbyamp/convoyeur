@@ -47,7 +47,7 @@ jobs:
       - name: Checkout
         uses: classabbyamp/treeless-checkout-action@v1
       - name: Build
-        run: cargo auditable build --profile release-bin
+        run: . ~/.cargo/env && cargo auditable build --profile release-bin
       - name: Upload to release
         run: |
           cp ./target/release-bin/convoyeur convoyeur.${{ matrix.config.arch }}

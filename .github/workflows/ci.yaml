@@ -36,10 +36,10 @@ jobs:
       - name: Checkout
         uses: classabbyamp/treeless-checkout-action@v1
       - name: Cargo build (debug)
-        run: cargo build
+        run: . ~/.cargo/env && cargo build
       - name: Cargo build (release)
-        run: cargo build --profile release-bin
+        run: . ~/.cargo/env && cargo build --profile release-bin
       - name: Cargo clippy
-        run: cargo clippy
+        run: . ~/.cargo/env && cargo clippy
       - name: Cargo fmt
-        run: cargo fmt --check --all
+        run: . ~/.cargo/env && cargo fmt --check --all
