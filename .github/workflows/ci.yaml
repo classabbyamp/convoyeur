@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Check Code
+    runs-on: ${{ matrix.config.runner }}
+    strategy:
+      matrix:
+        config:
+          - { arch: x86_64,  platform: linux/amd64, runner: ubuntu-latest    }
+          - { arch: aarch64, platform: linux/arm64, runner: ubuntu-24.04-arm }
+    container:
+      image: ghcr.io/void-linux/void-musl-full:latest
+      options: --platform ${{ matrix.config.platform }}
+      env:
+        PATH: '/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/sbin:/usr/local/bin:/tmp/bin'
+    steps:
+      - name: Install Dependencies
+        run: xbps-install -Suy xbps && xbps-install -uy git bash cargo
+      - name: Checkout
+        uses: classabbyamp/treeless-checkout-action@v1
+      - name: Cargo build (debug)
+        run: cargo build
+      - name: Cargo build (release)
+        run: cargo build --profile release-bin
+      - name: Cargo clippy
+        run: cargo clippy
+      - name: Cargo fmt
+        run: cargo fmt --check --all
