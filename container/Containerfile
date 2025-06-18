@@ -1,0 +1,17 @@
+FROM --platform=${BUILDPLATFORM} ghcr.io/void-linux/void-musl-full:latest AS build
+
+RUN xbps-install -Suy xbps && xbps-install -uy \
+    && xbps-install -y base-devel rustup cargo-auditable \
+    && rustup-init -y
+
+COPY . /build
+WORKDIR /build
+
+RUN . /root/.cargo/env && cargo auditable build --locked --profile release-bin
+
+FROM scratch
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /build/target/release-bin/convoyeur /
+ENV CONVOYEUR_CONF=/config.hcl
+EXPOSE 8069
+CMD ["/convoyeur"]
